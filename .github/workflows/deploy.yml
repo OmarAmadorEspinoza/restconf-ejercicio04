@@ -1,0 +1,68 @@
+name: CI-CD RESTCONF
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Build - lint YAML
+        run: yamllint config .github
+      - name: Build - lint Python
+        run: flake8 src tests
+      - name: Test - unitarias
+        run: pytest -v
+
+  dry-run:
+    needs: build-test
+    if: vars.SELF_HOSTED == 'true'
+    runs-on: self-hosted
+    env:
+      SANDBOX_USER: ${{ secrets.SANDBOX_USER }}
+      SANDBOX_PASS: ${{ secrets.SANDBOX_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar entorno
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements.txt
+      - name: Test - prueba en seco contra el switch
+        run: |
+          . .venv/bin/activate
+          python src/deploy.py --check
+
+  deploy:
+    needs: [build-test, dry-run]
+    if: vars.SELF_HOSTED == 'true' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    env:
+      SANDBOX_USER: ${{ secrets.SANDBOX_USER }}
+      SANDBOX_PASS: ${{ secrets.SANDBOX_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar entorno
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements.txt
+      - name: Deploy
+        run: |
+          . .venv/bin/activate
+          python src/deploy.py
+      - name: Operate - segunda ejecución (idempotencia)
+        run: |
+          . .venv/bin/activate
+          python src/deploy.py
+      - name: Monitor
+        run: |
+          . .venv/bin/activate
+          python src/verify.py

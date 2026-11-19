@@ -4,6 +4,9 @@ Configura un Loopback y políticas SNMP en un Cisco Catalyst 9300 (DevNet Sandbo
 por RESTCONF, sin cambios manuales por consola.
 Todo cambio pasa por **Git -> Pull Request -> pipeline -> API**.
 
+## Reporte de evidencias
+**[Ver el reporte completo en PDF](docs/Reporte_Ejercicio04.pdf)** con las evidencias de cada fase del ciclo DevOps, problemas encontrados y la limitación de SNMP.
+
 ## Configuración deseada (`config/vars.yml`)
 | Elemento | Valor |
 |---|---|
